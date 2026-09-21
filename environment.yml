@@ -1,0 +1,17 @@
+name: AI-Assisted-Pneumonia-Detection-Project
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - pytest-cov
+  - pytest
+  - pandas
+  - seaborn
+  - matplotlib
+  - opencv
+  - pydicom
+  - torchvision
+  - pytorch
+  - torchaudio
+  - scikit-learn
+prefix: /opt/miniconda3/envs/AI-Assisted-Pneumonia-Detection-Project

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PneumoDetect Results</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { background-color: #eef1f5; font-family: 'Inter', 'Segoe UI', sans-serif; }
+        .result-card { box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 12px; }
+        .chart-container { height: 220px; }
+        .disclaimer {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        img.result-image {
+            max-width: 100%;
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+        }
+        .btn-back { margin-top: 1.5rem; }
+        .section-title { font-weight: 700; color: #1c1f26; }
+        .hero { margin-top: 1rem; margin-bottom: 1rem; }
+        .row-gap { row-gap: 1rem; }
+        .metric-title { font-weight: 600; text-transform: uppercase; font-size: 0.85rem; color: #6c757d; }
+        .metric-value { font-weight: 700; color: #1c1f26; }
+        .metric-sub { margin: 0; font-size: 0.9rem; color: #4b5563; }
+        .header-icon { font-size: 1.5rem; }
+    </style>
+</head>
+
+<body class="p-3">
+<div class="container">
+    <div class="text-center hero">
+        <div class="header-icon">🩺</div>
+        <h3 class="section-title mb-1">PneumoDetect: Inference Results</h3>
+    </div>
+
+    <!-- Row 1: Original & Grad-CAM -->
+    <div class="row mb-4 row-gap">
+        <div class="col-md-6 text-center">
+            <h6 class="mb-2">Uploaded Image</h6>
+            <img src="{{ image_data }}" class="result-image" alt="Uploaded image">
+        </div>
+        <div class="col-md-6 text-center">
+            <h6 class="mb-2">Grad-CAM Explainability Map</h6>
+            {% if overlay_data %}
+                <img src="{{ overlay_data }}" class="result-image" alt="Grad-CAM overlay">
+                <div class="text-muted small mt-1">Red/yellow = regions that pushed the model towards "pneumonia".</div>
+            {% else %}
+                <div class="result-image d-flex align-items-center justify-content-center" style="background:#f8f9fa; min-height:100%;">
+                    <span class="text-muted">Grad-CAM was not requested.</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Row 2: Metrics Cards + Chart -->
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card result-card h-100">
+                <div class="card-body text-center">
+                    <div class="metric-title">Prediction</div>
+                    <h4 class="text-primary">{{ prediction }}</h4>
+                    <p class="metric-sub"><strong>Probability (Pneumonia):</strong> {{ '%.3f'|format(prob_pneumonia) }}</p>
+                    <p class="metric-sub"><strong>Probability (Normal):</strong> {{ '%.3f'|format(prob_normal) }}</p>
+                    <p class="metric-sub"><strong>Threshold:</strong> {{ threshold }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card result-card h-100">
+                <div class="card-body text-center">
+                    <div class="metric-title">How to read this</div>
+                    <p class="metric-sub">"High Risk" means P(pneumonia) is above the threshold you chose.</p>
+                    <p class="metric-sub"><strong>Inference time:</strong> {{ elapsed }}</p>
+                    {% if not model_loaded %}
+                    <p class="metric-sub text-danger"><strong>Model weights not loaded &mdash; result is meaningless.</strong></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card result-card h-100">
+                <div class="card-body text-center">
+                    <div class="metric-title">Probability Distribution</div>
+                    <canvas id="probChart" class="chart-container"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Upload Button -->
+    <div class="text-center btn-back">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-lg">⬅️ Back to Upload</a>
+    </div>
+
+    <!-- Disclaimer -->
+    <p class="disclaimer">
+        ⚠️ This tool is for research and decision support only; not a diagnostic device.
+    </p>
+</div>
+
+<!-- Chart.js -->
+<script>
+    const ctx = document.getElementById('probChart').getContext('2d');
+    const probNormal = {{ prob_normal|tojson }};
+    const probPneumonia = {{ prob_pneumonia|tojson }};
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Normal', 'Pneumonia'],
+            datasets: [{
+                label: 'Class Probability',
+                data: [probNormal, probPneumonia],
+                backgroundColor: ['#6c757d', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 1, title: { display: true, text: 'Probability' } }
+            }
+        }
+    });
+</script>
+</body>
+</html>
